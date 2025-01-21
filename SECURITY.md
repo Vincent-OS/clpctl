@@ -18,7 +18,7 @@ You will need to send a mail at the following address: [security@v38armageddon.n
 Please, when making the mail, be as precise as possible in your reporting, here's what you need to include in your mail:
 ```mail
 To: security@v38armageddon.net
-Subject: [NAME_OF_REPO] [Date and time in format ISO 8601, 24 hours format] - [Level] - [Simple description]
+Subject: [klpctl] [Date and time in format ISO 8601, 24 hours format] - [Level] - [Simple description]
 
 CVE Identifier: Your CVE Identifier, if you have one (Optionnal)
 -----------------------------
