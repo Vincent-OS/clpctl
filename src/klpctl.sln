@@ -4,15 +4,13 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.Core", "src\KLP.Core\KLP.Core.csproj", "{A154DFB2-FC19-8FDF-17D5-C3B2C9578A9C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.Core", "KLP.Core\KLP.Core.csproj", "{A154DFB2-FC19-8FDF-17D5-C3B2C9578A9C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.CLI", "src\KLP.CLI\KLP.CLI.csproj", "{2DB9AB1C-A21F-FE9C-D65E-F386846A1C66}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.CLI", "KLP.CLI\KLP.CLI.csproj", "{2DB9AB1C-A21F-FE9C-D65E-F386846A1C66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.Packager", "src\KLP.Packager\KLP.Packager.csproj", "{654A697F-DE2D-C925-F34E-CA34C925763F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.Packager", "KLP.Packager\KLP.Packager.csproj", "{654A697F-DE2D-C925-F34E-CA34C925763F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.Tests", "src\KLP.Tests\KLP.Tests.csproj", "{66F1BD6B-EA8F-755F-4C73-67065A900F38}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.SystemIntegration", "src\KLP.SystemIntegration\KLP.SystemIntegration.csproj", "{A95BBA96-2301-12A6-0215-941244F5DB7A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KLP.SystemIntegration", "KLP.SystemIntegration\KLP.SystemIntegration.csproj", "{A95BBA96-2301-12A6-0215-941244F5DB7A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
