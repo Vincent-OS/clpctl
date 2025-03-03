@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace KLP.SystemIntegration;
+namespace CLP.SystemIntegration;
 
 public class PatchExecutor
 {

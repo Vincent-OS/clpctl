@@ -4,14 +4,14 @@
 /// Create the root command and subcommands.
 /// Also create the necessary arguments for the specific subcommands.
 /// </summary>
-var rootCommand = new RootCommand("klpctl -  CLI Interface for Kernel LivePatch for Vincent OS.");
-var listCommand = new Command("list", "List all installed KLP patches.");
-var updateCommand = new Command("update", "Update the KLP database and apply new patches.");
-var installCommand = new Command("install", "Install a KLP patch.")
+var rootCommand = new RootCommand("clpctl -  CLI Interface for Core LivePatch for Vincent OS.");
+var listCommand = new Command("list", "List all installed CLP patches.");
+var updateCommand = new Command("update", "Update the CLP database and apply new patches.");
+var installCommand = new Command("install", "Install a CLP patch.")
 {
-    new Argument<string>("patch", "The patch to install (in .klp format).")
+    new Argument<string>("patch", "The patch to install (in .clp format).")
 };
-var uninstallCommand = new Command("uninstall", "Uninstall a KLP patch.")
+var uninstallCommand = new Command("uninstall", "Uninstall a CLP patch.")
 {
     new Argument<string>("patch", "The patch to uninstall.")
 };
@@ -21,25 +21,25 @@ var uninstallCommand = new Command("uninstall", "Uninstall a KLP patch.")
 /// </summary>
 installCommand.SetHandler(async (string file) =>
 {
-    KLP.CLI.InstallCommand command = new KLP.CLI.InstallCommand();
+    CLP.CLI.InstallCommand command = new CLP.CLI.InstallCommand();
     command.InstallPatch(file);
     await Task.CompletedTask;
 }, (System.CommandLine.Binding.IValueDescriptor<string>)installCommand.Arguments[0]);
 listCommand.SetHandler(async () =>
 {
-    KLP.CLI.ListCommand command = new KLP.CLI.ListCommand();
+    CLP.CLI.ListCommand command = new CLP.CLI.ListCommand();
     command.ListInstalledPatches();
     await Task.CompletedTask;
 });
 uninstallCommand.SetHandler(async (string patch) =>
 {
-    KLP.CLI.UninstallCommand command = new KLP.CLI.UninstallCommand();
+    CLP.CLI.UninstallCommand command = new CLP.CLI.UninstallCommand();
     command.UninstallPatch(patch);
     await Task.CompletedTask;
 }, (System.CommandLine.Binding.IValueDescriptor<string>)uninstallCommand.Arguments[0]);
 updateCommand.SetHandler(async () =>
 {
-    KLP.CLI.UpdateCommand command = new KLP.CLI.UpdateCommand();
+    CLP.CLI.UpdateCommand command = new CLP.CLI.UpdateCommand();
     command.UpdateDatabase();
     await Task.CompletedTask;
 });

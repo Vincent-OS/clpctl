@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace KLP.Core;
+namespace CLP.Core;
 
 public static class ChecksumUtility
 {

@@ -2,16 +2,16 @@
 using SharpCompress.Common;
 using SharpCompress.Writers;
 
-namespace KLP.Packager;
+namespace CLP.Packager;
 
-public class KlpPackager
+public class ClpPackager
 {
     /// <summary>
-    /// Creates a KLP file from the specified folder path and saves it to the specified output path.
+    /// Creates a CLP file from the specified folder path and saves it to the specified output path.
     /// </summary>
-    /// <param name="outputPath">The path where the KLP file will be saved.</param>
-    /// <param name="folderPath">The path of the folder to be compressed into a KLP file.</param>
-    public void CreateKlpFile(string outputPath, string folderPath)
+    /// <param name="outputPath">The path where the CLP file will be saved.</param>
+    /// <param name="folderPath">The path of the folder to be compressed into a CLP file.</param>
+    public void CreateClpFile(string outputPath, string folderPath)
     {
         using var archive = ArchiveFactory.Create(ArchiveType.GZip);
         foreach (var file in Directory.GetFiles(folderPath))
@@ -24,13 +24,13 @@ public class KlpPackager
     }
 
     /// <summary>
-    /// Extracts the contents of a KLP file to the specified output path.
+    /// Extracts the contents of a CLP file to the specified output path.
     /// </summary>
-    /// <param name="klpPath">The path of the KLP file to be extracted.</param>
+    /// <param name="clpPath">The path of the CLP file to be extracted.</param>
     /// <param name="outputPath">The path where the contents will be extracted.</param>
-    public void ExtractKlpFile(string klpPath, string outputPath)
+    public void ExtractClpFile(string clpPath, string outputPath)
     {
-        using var archive = ArchiveFactory.Open(klpPath);
+        using var archive = ArchiveFactory.Open(clpPath);
         foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
         {
             entry.WriteToDirectory(outputPath, new ExtractionOptions

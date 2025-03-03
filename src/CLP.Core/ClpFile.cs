@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace KLP.Core;
+namespace CLP.Core;
 
-public class KlpFile
+public class ClpFile
 {
     public string Name { get; set; }
     public string Version { get; set; }
@@ -11,9 +11,9 @@ public class KlpFile
     public string Description { get; set; }
     public string Depends { get; set; }
 
-    //public static KlpFile FromFile(string filePath)
+    //public static ClpFile FromFile(string filePath)
     //{
-    //    var klpFile = new KlpFile();
+    //    var clpFile = new ClpFile();
     //    foreach (var line in File.ReadLines(filePath))
     //    {
     //        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || !line.Contains("="))
@@ -26,22 +26,22 @@ public class KlpFile
     //        switch (key)
     //        {
     //            case "Name":
-    //                klpFile.Name = value;
+    //                clpFile.Name = value;
     //                break;
     //            case "Version":
-    //                klpFile.Version = value;
+    //                clpFile.Version = value;
     //                break;
     //            case "Architechture":
-    //                klpFile.Architechture = value;
+    //                clpFile.Architechture = value;
     //                break;
     //            case "Description":
-    //                klpFile.Description = value;
+    //                clpFile.Description = value;
     //                break;
     //            case "Depends":
-    //                klpFile.Depends = value;
+    //                clpFile.Depends = value;
     //                break;
     //        }
-    //        return klpFile;
+    //        return clpFile;
     //    }
     //}
     
