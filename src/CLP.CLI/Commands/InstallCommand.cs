@@ -1,19 +1,19 @@
-using KLP.Core;
-using KLP.Packager;
+using CLP.Core;
+using CLP.Packager;
 using System;
 using System.CommandLine;
 using System.Diagnostics;
 
-namespace KLP.CLI;
+namespace CLP.CLI;
 
 public class InstallCommand
 {
     public void InstallPatch(string file)
     {
         // Check if we are installing a valid patch
-        if (!file.EndsWith(".klp"))
+        if (!file.EndsWith(".CLP"))
         {
-            Console.Error.WriteLine("Invalid patch format. Please provide a .klp file.");
+            Console.Error.WriteLine("Invalid patch format. Please provide a .CLP file.");
             return;
         }
 
@@ -22,7 +22,19 @@ public class InstallCommand
 
         // Extract the patch file
         Console.WriteLine($"Installing patch {file}...");
-        var packager = new KlpPackager();
-        packager.ExtractKlpFile(file, "/tmp/klp");
+        var packager = new ClpPackager();
+        try
+        {
+            if (Directory.Exists($"/opt/CLP/{file}"))
+            {
+                Console.WriteLine($"Patch {file} is already installed.");
+                return;
+            }
+            packager.ExtractClpFile(file, $"/opt/CLP/{file}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+        }
     }
 }
