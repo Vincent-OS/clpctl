@@ -18,7 +18,7 @@ namespace CLP.CLI
             }
             // Check if in the path, there is required files
             // Like PKGINFO.meta, install.sh, etc.
-            var requiredFiles = new string[] { "PKGINFO.meta", "install.sh", "uninstall.sh" };
+            var requiredFiles = new string[] { "PKGINFO.meta", "patch.sh", "revert.sh" };
             foreach (var file in requiredFiles)
             {
                 if (!File.Exists(Path.Combine(path, file)))
