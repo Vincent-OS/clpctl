@@ -9,7 +9,6 @@ public class ClpFile
     public string Version { get; set; }
     public string Architechture { get; set; }
     public string Description { get; set; }
-    public string Depends { get; set; }
 
     public static ClpFile FromFile(string filePath, string path)
     {
@@ -37,9 +36,6 @@ public class ClpFile
                 case "Description":
                     clpFile.Description = value;
                     break;
-                case "Depends":
-                    clpFile.Depends = value;
-                    break;
             }
         }
         return clpFile;
@@ -54,7 +50,6 @@ public class ClpFile
             $"Version={Version}",
             $"Architechture={Architechture}",
             $"Description={Description}",
-            $"Depends={Depends}"
         };
         File.WriteAllLines(filePath, lines);
     }
