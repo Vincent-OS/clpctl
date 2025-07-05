@@ -17,8 +17,8 @@ namespace CLP.CLI
                 return;
             }
             // Check if in the path, there is required files
-            // Like PKGINFO.meta, install.sh, etc.
-            var requiredFiles = new string[] { "PKGINFO.meta", "patch.sh", "revert.sh" };
+            // Like PKGINFO.meta, Install-Patch.ps1, etc.
+            var requiredFiles = new string[] { "PKGINFO.meta", "Install-Patch.ps1", "Remove-Patch.ps1" };
             foreach (var file in requiredFiles)
             {
                 if (!File.Exists(Path.Combine(path, file)))

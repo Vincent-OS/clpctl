@@ -10,7 +10,7 @@ public class PatchExecutor
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = "/bin/bash",
+                FileName = "/usr/bin/pwsh",
                 Arguments = scriptPath,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true

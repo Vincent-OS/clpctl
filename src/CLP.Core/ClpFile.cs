@@ -13,7 +13,7 @@ public class ClpFile
     public static ClpFile FromFile(string filePath, string path)
     {
         var clpFile = new ClpFile();
-        foreach (var line in File.ReadLines(filePath))
+        foreach (var line in Directory.GetFiles(filePath, "*"))
         {
             if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || !line.Contains("="))
             {

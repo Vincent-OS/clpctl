@@ -17,13 +17,41 @@ public class UninstallCommand
                 Console.Error.WriteLine($"Patch {patch} is not installed.");
                 return;
             }
-            // Get all the diff files between the original files and the patched files
-            var diffFiles = Directory.GetFiles($"/opt/CLP/{patch}", "*.orig", SearchOption.AllDirectories);
-            foreach (var diffFile in diffFiles)
+            // Execute the Remove-Patch.ps1 script
+            var patchDir = Path.Combine("/opt/CLP", patch);
+            var scriptPath = Path.Combine(patchDir, "Remove-Patch.ps1");
+            if (File.Exists(scriptPath))
             {
-                var originalFile = diffFile.Replace(".orig", "");
-                File.Copy(diffFile, originalFile, true);
-                File.Delete(diffFile);
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "pwsh",
+                        Arguments = $"{scriptPath}",
+                        WorkingDirectory = patchDir,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                {
+                    Console.Error.WriteLine($"Error executing script: {error}");
+                    return;
+                }
+                Console.WriteLine(output);
+
+                // At last, remove the patch directory
+                Directory.Delete(patchDir, true);
+            }
+            else
+            {
+                Console.Error.WriteLine($"No Remove-Patch.ps1 script found in the patch directory. Manual intervention required!");
             }
         }
         catch (Exception ex)

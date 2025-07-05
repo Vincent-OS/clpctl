@@ -11,7 +11,7 @@ public class InstallCommand
     public void InstallPatch(string file)
     {
         // Check if we are installing a valid patch
-        if (!file.EndsWith(".CLP"))
+        if (!file.EndsWith(".CLP", StringComparison.OrdinalIgnoreCase))
         {
             Console.Error.WriteLine("Invalid patch format. Please provide a .CLP file.");
             return;
@@ -30,19 +30,21 @@ public class InstallCommand
                 Console.WriteLine($"Patch {file} is already installed.");
                 return;
             }
+            Directory.CreateDirectory($"/opt/CLP/{file}");
             packager.ExtractClpFile(file, $"/opt/CLP/{file}");
 
-            // Get on the new directory and execute the patch.sh script
+            // Get on the new directory and execute the Install-Patch.ps1 script
             var patchDir = Path.Combine("/opt/CLP", file);
-            var scriptPath = Path.Combine(patchDir, "install.sh");
+            var scriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
             if (File.Exists(scriptPath))
             {
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        FileName = "bash",
-                        Arguments = scriptPath,
+                        FileName = "pwsh",
+                        Arguments = $"{scriptPath}",
+                        WorkingDirectory = patchDir,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -55,21 +57,18 @@ public class InstallCommand
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
-                    Console.Error.WriteLine($"Error executing script: {error}");
+                    Console.Error.WriteLine($"[ERROR] Error executing script: {error}");
                 }
-                else
-                {
-                    Console.WriteLine($"Patch {file} installed successfully.");
-                }
+                Console.WriteLine(output);
             }
             else
             {
-                Console.Error.WriteLine($"No install.sh script found in the patch directory.");
+                Console.Error.WriteLine($"[ERROR] No Install-Patch.ps1 script found in the patch directory.");
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+            Console.Error.WriteLine($"[ERROR] An error occurred: {ex.Message}");
         }
     }
 }

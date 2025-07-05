@@ -1,6 +1,13 @@
 ﻿using SharpCompress.Archives;
+using SharpCompress.Archives.Tar;
 using SharpCompress.Common;
+using SharpCompress.Compressors;
+using SharpCompress.Compressors.Deflate;
 using SharpCompress.Writers;
+using System.Diagnostics;
+using System.Formats.Tar;
+using System.IO;
+using System.Text;
 
 namespace CLP.Packager;
 
@@ -13,14 +20,20 @@ public class ClpPackager
     /// <param name="folderPath">The path of the folder to be compressed into a CLP file.</param>
     public void CreateClpFile(string outputPath, string folderPath)
     {
-        using var archive = ArchiveFactory.Create(ArchiveType.GZip);
+        using var tarArchive = TarArchive.Create();
+        foreach (var dir in Directory.GetDirectories(folderPath))
+        {
+            tarArchive.AddAllFromDirectory(dir);
+        }
         foreach (var file in Directory.GetFiles(folderPath))
         {
-            archive.AddEntry(Path.GetFileName(file), File.OpenRead(file), true);
+            tarArchive.AddEntry(Path.GetFileName(file), file);
         }
-
-        using var stream = File.OpenWrite(outputPath);
-        archive.SaveTo(stream, new WriterOptions(CompressionType.Deflate));
+        var writerOptions = new WriterOptions(CompressionType.GZip)
+        {
+            ArchiveEncoding = new ArchiveEncoding(Encoding.UTF8, Encoding.UTF8)
+        };
+        tarArchive.SaveTo(outputPath, writerOptions);
     }
 
     /// <summary>
@@ -30,14 +43,23 @@ public class ClpPackager
     /// <param name="outputPath">The path where the contents will be extracted.</param>
     public void ExtractClpFile(string clpPath, string outputPath)
     {
-        using var archive = ArchiveFactory.Open(clpPath);
-        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+        // HACK: Extract the CLP file using the 'tar' command line
+        // Because SharpCompress won't handle the extraction properly
+        var process = new Process
         {
-            entry.WriteToDirectory(outputPath, new ExtractionOptions
+            StartInfo = new ProcessStartInfo
             {
-                ExtractFullPath = true,
-                Overwrite = true
-            });
-        }
+                FileName = "tar",
+                Arguments = $"-xvzf \"{clpPath}\" -C \"{outputPath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        process.Start();
+        string stdout = process.StandardOutput.ReadToEnd();
+        string stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
     }
 }
