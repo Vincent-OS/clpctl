@@ -8,17 +8,14 @@ currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| 1.0   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 You will need to send a mail at the following address: [security@v38armageddon.net](mailto:security@v38armageddon.net)
 Please, when making the mail, be as precise as possible in your reporting, here's what you need to include in your mail:
 ```mail
 To: security@v38armageddon.net
-Subject: [klpctl] [Date and time in format ISO 8601, 24 hours format] - [Level] - [Simple description]
+Subject: [clpctl] [Date and time in format ISO 8601, 24 hours format] - [Level] - [Simple description]
 
 CVE Identifier: Your CVE Identifier, if you have one (Optionnal)
 -----------------------------
