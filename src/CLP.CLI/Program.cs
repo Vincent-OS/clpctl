@@ -51,7 +51,7 @@ uninstallCommand.SetHandler(async (string patch) =>
 updateCommand.SetHandler(async () =>
 {
     CLP.CLI.UpdateCommand command = new CLP.CLI.UpdateCommand();
-    command.UpdateDatabase();
+    await command.UpdateDatabase();
     await Task.CompletedTask;
 });
 

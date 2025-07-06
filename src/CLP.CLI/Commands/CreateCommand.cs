@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CLP.Core;
+using CLP.Packager;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,9 +31,9 @@ namespace CLP.CLI
             }
 
             // At last, create the patch
-            Core.ClpFile clpFile = Core.ClpFile.FromFile(path, path);
-            Packager.ClpPackager clpPackager = new Packager.ClpPackager();
-            clpPackager.CreateClpFile($"{name}.clp", path);
+            ClpFile clpFile = ClpFile.FromFile(path, path);
+            ClpPackager clpPackager = new ClpPackager();
+            clpPackager.CreateClpFile($"{name}.CLP", path);
         }
     }
 }
