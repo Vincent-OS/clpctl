@@ -62,7 +62,14 @@ public class UpdateCommand
 
                             // Ensure the patch has not been compromised
                             ChecksumUtility.ComputeChecksum(patchPath);
-;
+
+                            // Prepare the folder to /opt/CLP for extraction
+                            // Should be handled by ClpPackager, .NET somethimes can be weird
+                            if (!Directory.Exists($"/opt/CLP/{patchName}"))
+                            {
+                                Directory.CreateDirectory($"/opt/CLP/{patchName}");
+                            }
+
                             // Call the packager to apply the patches
                             var packager = new ClpPackager();
                             packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
