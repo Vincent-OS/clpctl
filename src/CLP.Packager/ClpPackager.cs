@@ -43,20 +43,29 @@ public class ClpPackager
     /// <param name="outputPath">The path where the contents will be extracted.</param>
     public void ExtractClpFile(string clpPath, string outputPath)
     {
-        // HACK: Extract the CLP file using the 'tar' command line
-        // Because SharpCompress won't handle the extraction properly
+        if (!Directory.Exists(outputPath))
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
+        // HACK: Use 'tar' command line tool to extract the CLP file
+        // Because SharpCompress gets weird and shits a lot of errors
+        // When using .CLP files even if it is a tar file.
+        // And yes, I know this is bad because if someone accidentally
+        // remove 'tar' this fucked up the system.
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "tar",
-                Arguments = $"-xvzf \"{clpPath}\" -C \"{outputPath}\"",
+                Arguments = $"-xzf \"{clpPath}\" -C \"{outputPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
         };
+
         process.Start();
         string stdout = process.StandardOutput.ReadToEnd();
         string stderr = process.StandardError.ReadToEnd();
