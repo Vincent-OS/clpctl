@@ -1,5 +1,5 @@
+using CLP.Core;
 using CLP.Packager;
-using CLP.SystemIntegration;
 using System;
 using System.CommandLine;
 using System.Diagnostics;
@@ -59,16 +59,21 @@ public class UpdateCommand
                         {
                             var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
                             File.WriteAllBytes(patchPath, patchData);
+
+                            // Ensure the patch has not been compromised
+                            ChecksumUtility.ComputeChecksum(patchPath);
+;
+                            // Call the packager to apply the patches
+                            var packager = new ClpPackager();
+                            packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
                             Console.WriteLine($"Downloaded patch: {patchName}");
                         }
                         else
                         {
                             Console.Error.WriteLine($"Failed to download patch: {patchName}");
                         }
-                        // Call the packager to apply the patches
-                        var packager = new ClpPackager();
-                        packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
                     }
+                    continue;
                 }
 
                 // Execute the installation scripts for each patch

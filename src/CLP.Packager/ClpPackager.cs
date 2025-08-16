@@ -43,23 +43,31 @@ public class ClpPackager
     /// <param name="outputPath">The path where the contents will be extracted.</param>
     public void ExtractClpFile(string clpPath, string outputPath)
     {
-        // HACK: Extract the CLP file using the 'tar' command line
-        // Because SharpCompress won't handle the extraction properly
-        var process = new Process
+        if (!Directory.Exists(outputPath))
         {
-            StartInfo = new ProcessStartInfo
+            Directory.CreateDirectory(outputPath);
+        }
+
+        using (var archive = TarArchive.Open(clpPath))
+        {
+            foreach (var entry in archive.Entries)
             {
-                FileName = "tar",
-                Arguments = $"-xvzf \"{clpPath}\" -C \"{outputPath}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                if (!entry.IsDirectory)
+                {
+                    var destinationPath = Path.Combine(outputPath, entry.Key);
+
+                    if (!Directory.Exists(destinationPath!))
+                    {
+                        Directory.CreateDirectory(destinationPath!);
+                    }
+
+                    entry.WriteToFile(destinationPath, new ExtractionOptions()
+                    {
+                        ExtractFullPath = true,
+                        Overwrite = true
+                    });
+                }
             }
-        };
-        process.Start();
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+        }
     }
 }
