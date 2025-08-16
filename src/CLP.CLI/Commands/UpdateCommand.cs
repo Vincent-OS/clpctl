@@ -1,4 +1,5 @@
 using CLP.Packager;
+using CLP.SystemIntegration;
 using System;
 using System.CommandLine;
 using System.Diagnostics;
@@ -44,12 +45,16 @@ public class UpdateCommand
                 File.WriteAllText(localDbPath, serverDbContent);
                 foreach (var line in serverDbContent.Split('\n'))
                 {
-                    var patchName = line.Split('=')[1].Trim();
-                    var patchUrl = $"https://repo.v38armageddon.net/vincent-os/CLP/{patchName}.CLP";
-                    var patchResponse = await client.GetAsync(patchUrl);
-                    var patchPath = $"/tmp/CLP/{patchName}.CLP";
                     if (line.StartsWith("Name="))
                     {
+                        var patchName = line.Split('=')[1].Trim();
+                        var patchUrl = $"https://repo.v38armageddon.net/vincent-os/CLP/{patchName}.CLP";
+                        var patchResponse = await client.GetAsync(patchUrl);
+                        var patchPath = $"/tmp/CLP/{patchName}.CLP";
+                        if (!Directory.Exists("/tmp/CLP"))
+                        {
+                            Directory.CreateDirectory("/tmp/CLP");
+                        }
                         if (patchResponse.IsSuccessStatusCode)
                         {
                             var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
@@ -60,10 +65,49 @@ public class UpdateCommand
                         {
                             Console.Error.WriteLine($"Failed to download patch: {patchName}");
                         }
+                        // Call the packager to apply the patches
+                        var packager = new ClpPackager();
+                        packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
                     }
-                    // Call the packager to apply the patches
-                    var packager = new ClpPackager();
-                    packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
+                }
+
+                // Execute the installation scripts for each patch
+                var patchesDirectory = Directory.GetDirectories("/opt/CLP");
+                foreach (var patchDir in patchesDirectory)
+                {
+                    var installScriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
+                    if (File.Exists(installScriptPath))
+                    {
+                        var process = new Process
+                        {
+                            StartInfo = new ProcessStartInfo
+                            {
+                                FileName = "pwsh",
+                                Arguments = $"{installScriptPath}",
+                                WorkingDirectory = patchDir,
+                                RedirectStandardOutput = true,
+                                RedirectStandardError = true,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            }
+                        };
+                        process.Start();
+                        string output = process.StandardOutput.ReadToEnd();
+                        string error = process.StandardError.ReadToEnd();
+                        process.WaitForExit();
+                        if (process.ExitCode != 0)
+                        {
+                            Console.Error.WriteLine($"Error executing script {installScriptPath}: {error}");
+                        }
+                        else
+                        {
+                            Console.WriteLine(output);
+                        }
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"No Install-Patch.ps1 script found in {patchDir}. Manual intervention required!");
+                    }
                 }
             }
             else
