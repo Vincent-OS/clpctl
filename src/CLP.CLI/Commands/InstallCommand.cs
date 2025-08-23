@@ -11,9 +11,11 @@ public class InstallCommand
     public void InstallPatch(string file)
     {
         // Check if we are installing a valid patch
-        if (!file.EndsWith(".CLP", StringComparison.OrdinalIgnoreCase))
+        if (!file.EndsWith(".clp", StringComparison.OrdinalIgnoreCase))
         {
-            Console.Error.WriteLine("Invalid patch format. Please provide a .CLP file.");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine("[ERROR] Invalid patch format. Please provide a '.clp' file.");
+            Console.ResetColor();
             return;
         }
 
@@ -57,18 +59,24 @@ public class InstallCommand
                 process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
+                    Console.ForegroundColor = ConsoleColor.Red;
                     Console.Error.WriteLine($"[ERROR] Error executing script: {error}");
+                    Console.ResetColor();
                 }
                 Console.WriteLine(output);
             }
             else
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine($"[ERROR] No Install-Patch.ps1 script found in the patch directory.");
+                Console.ResetColor();
             }
         }
         catch (Exception ex)
         {
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine($"[ERROR] An error occurred: {ex.Message}");
+            Console.ResetColor();
         }
     }
 }

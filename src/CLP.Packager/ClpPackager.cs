@@ -67,8 +67,8 @@ public class ClpPackager
         };
 
         process.Start();
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
         process.WaitForExit();
     }
 }

@@ -1,5 +1,5 @@
-# clpctl
-clpctl is the CLI version of the CLP (Core LivePatch) service. It allows you to manage Vincent OS Updates, restore for a previous version for a package, patch a configuration file.
+# Core LivePatch CLI
+Core LivePatch CLI is the command tool for Core LivePatch service. It allows you to manage Vincent OS Updates, restore for a previous version for a package, patch a configuration file.
 
 ## Installation
 ### From Source
