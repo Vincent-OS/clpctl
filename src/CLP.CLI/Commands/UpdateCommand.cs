@@ -50,7 +50,7 @@ public class UpdateCommand
                 // Overwrite the local database with the server version
                 File.WriteAllText(localDbPath, serverDbContent);
                 var xmlDoc = new XmlDocument();
-                xmlDoc.LoadXml(localDbPath);
+                xmlDoc.LoadXml(File.ReadAllText(localDbPath));
                 var root = xmlDoc.DocumentElement;
                 foreach (XmlNode node in root.SelectSingleNode("Name"))
                 {
