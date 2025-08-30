@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Xml;
 
 namespace CLP.Core;
 
@@ -13,44 +14,31 @@ public class ClpFile
     public static ClpFile FromFile(string filePath, string path)
     {
         var clpFile = new ClpFile();
-        foreach (var line in Directory.GetFiles(filePath, "*"))
+        var xmlDoc = new XmlDocument();
+        xmlDoc.Load(filePath);
+
+        var root = xmlDoc.DocumentElement;
+        if (root == null)
+            return clpFile;
+
+        foreach (XmlNode node in root.ChildNodes)
         {
-            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#") || !line.Contains("="))
-            {
-                continue;
-            }
-            var parts = line.Split("=", 2);
-            var key = parts[0].Trim();
-            var value = parts[1].Trim();
-            switch (key)
+            switch (node.Name)
             {
                 case "Name":
-                    clpFile.Name = value;
+                    clpFile.Name = node.InnerText.Trim();
                     break;
                 case "Version":
-                    clpFile.Version = value;
+                    clpFile.Version = node.InnerText.Trim();
                     break;
                 case "Architechture":
-                    clpFile.Architechture = value;
+                    clpFile.Architechture = node.InnerText.Trim();
                     break;
                 case "Description":
-                    clpFile.Description = value;
+                    clpFile.Description = node.InnerText.Trim();
                     break;
             }
         }
         return clpFile;
-    }
-
-    public void ToFile(string filePath)
-    {
-        var lines = new List<string>
-        {
-            "[Package]",
-            $"Name={Name}",
-            $"Version={Version}",
-            $"Architechture={Architechture}",
-            $"Description={Description}",
-        };
-        File.WriteAllLines(filePath, lines);
     }
 }

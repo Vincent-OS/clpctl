@@ -14,7 +14,9 @@ public class UninstallCommand
         {
             if (!Directory.Exists($"/opt/CLP/{patch}"))
             {
-                Console.Error.WriteLine($"Patch {patch} is not installed.");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine($"[ERROR] Patch {patch} is not installed.");
+                Console.ResetColor();
                 return;
             }
             // Execute the Remove-Patch.ps1 script
@@ -36,12 +38,17 @@ public class UninstallCommand
                     }
                 };
                 process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
                 string output = process.StandardOutput.ReadToEnd();
                 string error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
                 if (process.ExitCode != 0)
                 {
-                    Console.Error.WriteLine($"Error executing script: {error}");
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Error.WriteLine($"[ERROR] Error executing script: {error}");
+                    Console.Error.WriteLine($"[FATAL] Manual intervention required!");
+                    Console.ResetColor();
                     return;
                 }
                 Console.WriteLine(output);
@@ -51,12 +58,16 @@ public class UninstallCommand
             }
             else
             {
-                Console.Error.WriteLine($"No Remove-Patch.ps1 script found in the patch directory. Manual intervention required!");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine($"[ERROR] No Remove-Patch.ps1 script found in the patch directory. Manual intervention required!");
+                Console.ResetColor();
             }
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"An error occurred: {ex.Message}");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine($"[ERROR] An error occurred: {ex.Message}");
+            Console.ResetColor();
         }
     }
 }

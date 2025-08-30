@@ -1,8 +1,11 @@
 using CLP.Core;
 using CLP.Packager;
+using CLP.SystemIntegration;
 using System;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Xml;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CLP.CLI;
 
@@ -13,14 +16,14 @@ public class UpdateCommand
     public async Task UpdateDatabase()
     {
         Console.WriteLine("Updating CLP database...");
-
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("clpctl/2.0 (Core LivePatch; Vincent OS)");
+        
         // Get the latest version of the CLP database from the server and compare it to the local version
         // If the server version is newer, download and apply the patches
         var response = await client.GetAsync("https://repo.v38armageddon.net/vincent-os/CLP/CLP.db");
         if (!response.IsSuccessStatusCode)
         {
-            Console.Error.WriteLine("Failed to update CLP database. Make sure you have an active Internet connection.");
-            return;
+            throw new HttpRequestException("Failed to update Core LivePatch database. Make sure you have an active Internet connection.");
         }
 
         var serverDbContent = await response.Content.ReadAsStringAsync();
@@ -41,44 +44,49 @@ public class UpdateCommand
             if (serverDbContent != localDbContent)
             {
                 Console.WriteLine("New patches available. Downloading and applying...");
-
+                // Backup the local database before overwriting
+                var backupPath = $"/etc/CLP/CLP.db.bak";
+                File.WriteAllText(backupPath, localDbContent);
+                // Overwrite the local database with the server version
                 File.WriteAllText(localDbPath, serverDbContent);
-                foreach (var line in serverDbContent.Split('\n'))
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(File.ReadAllText(localDbPath));
+                var root = xmlDoc.DocumentElement;
+                foreach (XmlNode node in root.SelectSingleNode("Name"))
                 {
-                    if (line.StartsWith("Name="))
+                    var patchName = node.InnerText.Trim();
+                    var patchUrl = $"https://repo.v38armageddon.net/vincent-os/CLP/{patchName}.CLP";
+                    var patchResponse = await client.GetAsync(patchUrl);
+                    var patchPath = $"/tmp/CLP/{patchName}.CLP";
+                    if (!Directory.Exists("/tmp/CLP"))
                     {
-                        var patchName = line.Split('=')[1].Trim();
-                        var patchUrl = $"https://repo.v38armageddon.net/vincent-os/CLP/{patchName}.CLP";
-                        var patchResponse = await client.GetAsync(patchUrl);
-                        var patchPath = $"/tmp/CLP/{patchName}.CLP";
-                        if (!Directory.Exists("/tmp/CLP"))
-                        {
-                            Directory.CreateDirectory("/tmp/CLP");
-                        }
-                        if (patchResponse.IsSuccessStatusCode)
-                        {
-                            var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
-                            File.WriteAllBytes(patchPath, patchData);
+                        Directory.CreateDirectory("/tmp/CLP");
+                    }
+                    if (patchResponse.IsSuccessStatusCode)
+                    {
+                        var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
+                        File.WriteAllBytes(patchPath, patchData);
 
-                            // Ensure the patch has not been compromised
-                            ChecksumUtility.ComputeChecksum(patchPath);
+                        // Ensure the patch has not been compromised
+                        ChecksumUtility.ComputeChecksum(patchPath);
 
-                            // Prepare the folder to /opt/CLP for extraction
-                            // Should be handled by ClpPackager, .NET somethimes can be weird
-                            if (!Directory.Exists($"/opt/CLP/{patchName}"))
-                            {
-                                Directory.CreateDirectory($"/opt/CLP/{patchName}");
-                            }
-
-                            // Call the packager to apply the patches
-                            var packager = new ClpPackager();
-                            packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
-                            Console.WriteLine($"Downloaded patch: {patchName}");
-                        }
-                        else
+                        // Prepare the folder to /opt/CLP for extraction
+                        // Should be handled by ClpPackager, .NET somethimes can be weird
+                        if (!Directory.Exists($"/opt/CLP/{patchName}"))
                         {
-                            Console.Error.WriteLine($"Failed to download patch: {patchName}");
+                            Directory.CreateDirectory($"/opt/CLP/{patchName}");
                         }
+
+                        // Call the packager to apply the patches
+                        var packager = new ClpPackager();
+                        packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
+                        Console.WriteLine($"Downloaded patch: {patchName}");
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Error.WriteLine($"[ERROR] Failed to download patch: {patchName}");
+                        Console.ResetColor();
                     }
                     continue;
                 }
@@ -90,35 +98,32 @@ public class UpdateCommand
                     var installScriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
                     if (File.Exists(installScriptPath))
                     {
-                        var process = new Process
+                        PatchExecutor patchExecutor = new PatchExecutor();
+                        patchExecutor.ApplyPatch(installScriptPath);
+                        if (!patchExecutor.Success)
                         {
-                            StartInfo = new ProcessStartInfo
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Error.WriteLine($"[ERROR] Error reverting patch {installScriptPath}.");
+                            Console.ResetColor();
+                            var revertScriptPath = Path.Combine(patchDir, "Remove-Patch.ps1");
+                            if (File.Exists(revertScriptPath))
                             {
-                                FileName = "pwsh",
-                                Arguments = $"{installScriptPath}",
-                                WorkingDirectory = patchDir,
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
+                                PatchExecutor revertExecutor = new PatchExecutor();
+                                revertExecutor.ApplyPatch(revertScriptPath);
+                                if (!revertExecutor.Success)
+                                {
+                                    throw new InvalidOperationException($"Failed to revert patch {revertScriptPath}. Manual intervention required!");
+                                }
                             }
-                        };
-                        process.Start();
-                        string output = process.StandardOutput.ReadToEnd();
-                        string error = process.StandardError.ReadToEnd();
-                        process.WaitForExit();
-                        if (process.ExitCode != 0)
-                        {
-                            Console.Error.WriteLine($"Error executing script {installScriptPath}: {error}");
-                        }
-                        else
-                        {
-                            Console.WriteLine(output);
+                            else
+                            {
+                                throw new FileNotFoundException($"No Remove-Patch.ps1 script found in {patchDir}. Manual intervention required!");
+                            }
                         }
                     }
                     else
                     {
-                        Console.Error.WriteLine($"No Install-Patch.ps1 script found in {patchDir}. Manual intervention required!");
+                        throw new FileNotFoundException($"No Install-Patch.ps1 script found in {patchDir}. Manual intervention required!");
                     }
                 }
             }
@@ -129,7 +134,9 @@ public class UpdateCommand
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"An error occurred while updating CLP: {ex.Message}");
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine($"[ERROR] An error occurred while updating CLP: {ex.Message}");
+            Console.ResetColor();
             return;
         }
     }

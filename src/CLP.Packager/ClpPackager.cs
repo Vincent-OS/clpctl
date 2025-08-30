@@ -20,6 +20,7 @@ public class ClpPackager
     /// <param name="folderPath">The path of the folder to be compressed into a CLP file.</param>
     public void CreateClpFile(string outputPath, string folderPath)
     {
+        string tempPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(outputPath));
         using var tarArchive = TarArchive.Create();
         foreach (var dir in Directory.GetDirectories(folderPath))
         {
@@ -33,7 +34,13 @@ public class ClpPackager
         {
             ArchiveEncoding = new ArchiveEncoding(Encoding.UTF8, Encoding.UTF8)
         };
-        tarArchive.SaveTo(outputPath, writerOptions);
+        tarArchive.SaveTo(tempPath, writerOptions);
+
+        if (File.Exists(outputPath))
+        {
+            File.Delete(outputPath);
+        }
+        File.Move(tempPath, outputPath);
     }
 
     /// <summary>
@@ -67,8 +74,8 @@ public class ClpPackager
         };
 
         process.Start();
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
         process.WaitForExit();
     }
 }

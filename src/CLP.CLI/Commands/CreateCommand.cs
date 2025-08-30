@@ -15,7 +15,9 @@ namespace CLP.CLI
             // Check if the specified path exists
             if (!Directory.Exists(path))
             {
-                Console.Error.WriteLine($"The specified path {path} does not exist.");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine($"[ERROR] The specified path {path} does not exist.");
+                Console.ResetColor();
                 return;
             }
             // Check if in the path, there is required files
@@ -25,7 +27,9 @@ namespace CLP.CLI
             {
                 if (!File.Exists(Path.Combine(path, file)))
                 {
-                    Console.Error.WriteLine($"The file {file} is missing in the specified path.");
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Error.WriteLine($"[ERROR] The file {file} is missing in the specified path.");
+                    Console.ResetColor();
                     return;
                 }
             }
@@ -33,7 +37,7 @@ namespace CLP.CLI
             // At last, create the patch
             ClpFile clpFile = ClpFile.FromFile(path, path);
             ClpPackager clpPackager = new ClpPackager();
-            clpPackager.CreateClpFile($"{name}.CLP", path);
+            clpPackager.CreateClpFile($"{name}.clp", path);
         }
     }
 }
