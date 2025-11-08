@@ -19,13 +19,16 @@ public class PatchExecutor
             }
         };
         process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        process.WaitForExit();
         string output = process.StandardOutput.ReadToEnd();
         string error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
         if (process.ExitCode != 0)
+        {
             Success = false;
-        Success = true;
+        }
+        else
+        {
+            Success = true;
+        }
     }
 }

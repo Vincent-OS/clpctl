@@ -35,7 +35,7 @@ namespace CLP.CLI
             }
 
             // At last, create the patch
-            ClpFile clpFile = ClpFile.FromFile(path, path);
+            ClpFile clpFile = ClpFile.FromFile(Path.Combine(path, "PKGINFO.meta"), path);
             ClpPackager clpPackager = new ClpPackager();
             clpPackager.CreateClpFile($"{name}.clp", path);
         }

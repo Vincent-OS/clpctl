@@ -38,7 +38,11 @@ public class UpdateCommand
             if (!File.Exists(localDbPath))
             {
                 Console.WriteLine("Local CLP database not found. Getting from server...");
-                Directory.CreateDirectory(Path.GetDirectoryName(localDbPath));
+                var directoryName = Path.GetDirectoryName(localDbPath);
+                if (directoryName != null)
+                {
+                    Directory.CreateDirectory(directoryName);
+                }
                 File.WriteAllText(localDbPath, serverDbContent);
             }
             if (serverDbContent != localDbContent)
@@ -52,7 +56,20 @@ public class UpdateCommand
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(File.ReadAllText(localDbPath));
                 var root = xmlDoc.DocumentElement;
-                foreach (XmlNode node in root.SelectSingleNode("Name"))
+                if (root == null)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Error.WriteLine("[ERROR] Failed to parse CLP database XML.");
+                    Console.ResetColor();
+                    return;
+                }
+                var nodes = root.SelectNodes("//Name");
+                if (nodes == null)
+                {
+                    Console.WriteLine("No patches found in the database.");
+                    return;
+                }
+                foreach (XmlNode node in nodes)
                 {
                     var patchName = node.InnerText.Trim();
                     var patchUrl = $"https://repo.v38armageddon.net/vincent-os/CLP/{patchName}.CLP";

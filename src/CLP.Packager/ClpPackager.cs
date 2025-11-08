@@ -74,8 +74,6 @@ public class ClpPackager
         };
 
         process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
         process.WaitForExit();
     }
 }
