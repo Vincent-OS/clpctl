@@ -19,6 +19,15 @@ public class InstallCommand
             return;
         }
 
+        // Check if the file exists
+        if (!File.Exists(file))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine($"[ERROR] The specified patch file {file} does not exist.");
+            Console.ResetColor();
+            return;
+        }
+
         // Validate the patch file checksum
         ChecksumUtility.ComputeChecksum(file);
 

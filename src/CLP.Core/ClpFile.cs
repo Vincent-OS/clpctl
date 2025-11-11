@@ -8,7 +8,7 @@ public class ClpFile
 {
     public string Name { get; set; }
     public string Version { get; set; }
-    public string Architechture { get; set; }
+    public string Architecture { get; set; }
     public string Description { get; set; }
 
     public static ClpFile FromFile(string filePath, string path)
@@ -31,8 +31,8 @@ public class ClpFile
                 case "Version":
                     clpFile.Version = node.InnerText.Trim();
                     break;
-                case "Architechture":
-                    clpFile.Architechture = node.InnerText.Trim();
+                case "Architecture":
+                    clpFile.Architecture = node.InnerText.Trim();
                     break;
                 case "Description":
                     clpFile.Description = node.InnerText.Trim();

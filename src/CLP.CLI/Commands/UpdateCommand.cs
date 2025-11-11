@@ -5,13 +5,18 @@ using System;
 using System.CommandLine;
 using System.Diagnostics;
 using System.Xml;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CLP.CLI;
 
 public class UpdateCommand
 {
     private static readonly HttpClient client = new HttpClient();
+
+    private List<string> serversList = new List<string>
+    {
+        "https://repo.v38armageddon.net/vincent-os/CLP/",
+        "https://repo-fallback.v38armageddon.net/vincent-os/CLP/"
+    };
 
     public async Task UpdateDatabase()
     {
@@ -20,18 +25,24 @@ public class UpdateCommand
         
         // Get the latest version of the CLP database from the server and compare it to the local version
         // If the server version is newer, download and apply the patches
-        var response = await client.GetAsync("https://repo.v38armageddon.net/vincent-os/CLP/CLP.db");
+        var response = await client.GetAsync($"{serversList[0]}CLP.db");
         if (!response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException("Failed to update Core LivePatch database. Make sure you have an active Internet connection.");
+            // Fallback to secondary server
+            response = await client.GetAsync($"{serversList[1]}CLP.db");
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine("[ERROR] Failed to fetch CLP database from both primary and fallback servers.");
+                Console.ResetColor();
+                return;
+            }
         }
-
         var serverDbContent = await response.Content.ReadAsStringAsync();
 
         // Read the local CLP database
         var localDbPath = "/etc/CLP/CLP.db";
         var localDbContent = File.Exists(localDbPath) ? File.ReadAllText(localDbPath) : string.Empty;
-
         try
         {
             // Verification part
@@ -52,10 +63,10 @@ public class UpdateCommand
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(File.ReadAllText(localDbPath));
                 var root = xmlDoc.DocumentElement;
-                foreach (XmlNode node in root.SelectSingleNode("Name"))
+                foreach (XmlNode node in root.SelectNodes("Package"))
                 {
-                    var patchName = node.InnerText.Trim();
-                    var patchUrl = $"https://repo.v38armageddon.net/vincent-os/CLP/{patchName}.CLP";
+                    var patchName = node.SelectSingleNode("Name")?.InnerText?.Trim();
+                    var patchUrl = $"{serversList[0]}{patchName}.CLP";
                     var patchResponse = await client.GetAsync(patchUrl);
                     var patchPath = $"/tmp/CLP/{patchName}.CLP";
                     if (!Directory.Exists("/tmp/CLP"))
@@ -71,7 +82,7 @@ public class UpdateCommand
                         ChecksumUtility.ComputeChecksum(patchPath);
 
                         // Prepare the folder to /opt/CLP for extraction
-                        // Should be handled by ClpPackager, .NET somethimes can be weird
+                        // Should be handled by ClpPackager, .NET sometimes can be weird
                         if (!Directory.Exists($"/opt/CLP/{patchName}"))
                         {
                             Directory.CreateDirectory($"/opt/CLP/{patchName}");
@@ -84,9 +95,15 @@ public class UpdateCommand
                     }
                     else
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.Error.WriteLine($"[ERROR] Failed to download patch: {patchName}");
-                        Console.ResetColor();
+                        patchUrl = $"{serversList[1]}{patchName}.CLP";
+                        patchResponse = await client.GetAsync(patchUrl);
+                        if (!patchResponse.IsSuccessStatusCode)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.Error.WriteLine($"[ERROR] Failed to download patch {patchName} from both primary and fallback servers.");
+                            Console.ResetColor();
+                            continue;
+                        }
                     }
                     continue;
                 }
@@ -103,7 +120,7 @@ public class UpdateCommand
                         if (!patchExecutor.Success)
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"[ERROR] Error reverting patch {installScriptPath}.");
+                            Console.Error.WriteLine($"[ERROR] Error applying patch {installScriptPath}. Reverting...");
                             Console.ResetColor();
                             var revertScriptPath = Path.Combine(patchDir, "Remove-Patch.ps1");
                             if (File.Exists(revertScriptPath))
