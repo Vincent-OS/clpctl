@@ -14,7 +14,7 @@ public class  ListCommand
         var patchesDirectory = Directory.GetDirectories("/opt/CLP");
         foreach (var patch in patchesDirectory)
         {
-            Console.WriteLine(patch.Replace("/opt/CLP", ""));
+            Console.WriteLine(patch.Replace("/opt/CLP/", ""));
         }
     }
 }
