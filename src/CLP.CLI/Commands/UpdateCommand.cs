@@ -66,9 +66,9 @@ public class UpdateCommand
                 foreach (XmlNode node in root.SelectNodes("Package"))
                 {
                     var patchName = node.SelectSingleNode("Name")?.InnerText?.Trim();
-                    var patchUrl = $"{serversList[0]}{patchName}.CLP";
+                    var patchUrl = $"{serversList[0]}{patchName}.clp";
                     var patchResponse = await client.GetAsync(patchUrl);
-                    var patchPath = $"/tmp/CLP/{patchName}.CLP";
+                    var patchPath = $"/tmp/CLP/{patchName}.clp";
                     if (!Directory.Exists("/tmp/CLP"))
                     {
                         Directory.CreateDirectory("/tmp/CLP");
@@ -95,7 +95,7 @@ public class UpdateCommand
                     }
                     else
                     {
-                        patchUrl = $"{serversList[1]}{patchName}.CLP";
+                        patchUrl = $"{serversList[1]}{patchName}.clp";
                         patchResponse = await client.GetAsync(patchUrl);
                         if (!patchResponse.IsSuccessStatusCode)
                         {
