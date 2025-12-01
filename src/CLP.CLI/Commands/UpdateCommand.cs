@@ -102,19 +102,11 @@ public class UpdateCommand
                                 continue;
                             }
                         }
-
                         var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
                         File.WriteAllBytes(patchPath, patchData);
 
                         // Ensure the patch has not been compromised
                         ChecksumUtility.ComputeChecksum(patchPath);
-
-                        // Prepare the folder to /opt/CLP for extraction
-                        var destDir = $"/opt/CLP/{patchName}";
-                        if (!Directory.Exists(destDir))
-                        {
-                            Directory.CreateDirectory(destDir);
-                        }
 
                         // Use InstallPatch from InstallCommand to install the patch
                         Console.WriteLine($"Downloaded patch: {patchName}");
