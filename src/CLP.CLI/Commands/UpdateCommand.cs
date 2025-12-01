@@ -62,19 +62,47 @@ public class UpdateCommand
                 File.WriteAllText(localDbPath, serverDbContent);
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(File.ReadAllText(localDbPath));
-                var root = xmlDoc.DocumentElement;
-                foreach (XmlNode node in root.SelectNodes("Package"))
+                var packageNodes = xmlDoc.SelectNodes("//Package");
+                if (packageNodes == null || packageNodes.Count == 0)
                 {
-                    var patchName = node.SelectSingleNode("Name")?.InnerText?.Trim();
-                    var patchUrl = $"{serversList[0]}{patchName}.clp";
-                    var patchResponse = await client.GetAsync(patchUrl);
-                    var patchPath = $"/tmp/CLP/{patchName}.clp";
-                    if (!Directory.Exists("/tmp/CLP"))
+                    Console.WriteLine("No patches listed in CLP database.");
+                }
+                else
+                {
+                    foreach (XmlNode node in packageNodes)
                     {
-                        Directory.CreateDirectory("/tmp/CLP");
-                    }
-                    if (patchResponse.IsSuccessStatusCode)
-                    {
+                        var patchName = node.SelectSingleNode("Name")?.InnerText?.Trim();
+                        if (string.IsNullOrWhiteSpace(patchName))
+                        {
+                            Console.WriteLine("Skipping package with empty name.");
+                            continue;
+                        }
+
+                        var tmpDir = "/tmp/CLP";
+                        if (!Directory.Exists(tmpDir))
+                        {
+                            Directory.CreateDirectory(tmpDir);
+                        }
+
+                        var patchPath = Path.Combine(tmpDir, patchName + ".clp");
+
+                        // Try primary then fallback server for each patch
+                        var patchUrlPrimary = $"{serversList[0]}{patchName}.clp";
+                        var patchUrlFallback = $"{serversList[1]}{patchName}.clp";
+
+                        HttpResponseMessage patchResponse = await client.GetAsync(patchUrlPrimary);
+                        if (!patchResponse.IsSuccessStatusCode)
+                        {
+                            patchResponse = await client.GetAsync(patchUrlFallback);
+                            if (!patchResponse.IsSuccessStatusCode)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.Error.WriteLine($"[ERROR] Failed to download patch {patchName} from both primary and fallback servers.");
+                                Console.ResetColor();
+                                continue;
+                            }
+                        }
+
                         var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
                         File.WriteAllBytes(patchPath, patchData);
 
@@ -82,34 +110,27 @@ public class UpdateCommand
                         ChecksumUtility.ComputeChecksum(patchPath);
 
                         // Prepare the folder to /opt/CLP for extraction
-                        // Should be handled by ClpPackager, .NET sometimes can be weird
-                        if (!Directory.Exists($"/opt/CLP/{patchName}"))
+                        var destDir = $"/opt/CLP/{patchName}";
+                        if (!Directory.Exists(destDir))
                         {
-                            Directory.CreateDirectory($"/opt/CLP/{patchName}");
+                            Directory.CreateDirectory(destDir);
                         }
 
                         // Call the packager to apply the patches
                         var packager = new ClpPackager();
-                        packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
+                        packager.ExtractClpFile(patchPath, destDir);
                         Console.WriteLine($"Downloaded patch: {patchName}");
                     }
-                    else
-                    {
-                        patchUrl = $"{serversList[1]}{patchName}.clp";
-                        patchResponse = await client.GetAsync(patchUrl);
-                        if (!patchResponse.IsSuccessStatusCode)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"[ERROR] Failed to download patch {patchName} from both primary and fallback servers.");
-                            Console.ResetColor();
-                            continue;
-                        }
-                    }
-                    continue;
                 }
 
                 // Execute the installation scripts for each patch
                 var patchesDirectory = Directory.GetDirectories("/opt/CLP");
+                if (patchesDirectory.Length == 0)
+                {
+                    Console.WriteLine("No patches were downloaded; nothing to apply.");
+                    return 0;
+                }
+
                 foreach (var patchDir in patchesDirectory)
                 {
                     var installScriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
