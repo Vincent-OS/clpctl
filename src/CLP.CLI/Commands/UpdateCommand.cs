@@ -116,10 +116,10 @@ public class UpdateCommand
                             Directory.CreateDirectory(destDir);
                         }
 
-                        // Call the packager to apply the patches
-                        var packager = new ClpPackager();
-                        packager.ExtractClpFile(patchPath, destDir);
+                        // Use InstallPatch from InstallCommand to install the patch
                         Console.WriteLine($"Downloaded patch: {patchName}");
+                        var installPatch = new InstallCommand();
+                        installPatch.InstallPatch(patchPath);
                     }
                 }
 
