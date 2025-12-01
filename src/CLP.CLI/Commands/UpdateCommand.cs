@@ -18,7 +18,7 @@ public class UpdateCommand
         "https://repo-fallback.v38armageddon.net/vincent-os/CLP/"
     };
 
-    public async Task UpdateDatabase()
+    public async Task<int> UpdateDatabase()
     {
         Console.WriteLine("Updating CLP database...");
         client.DefaultRequestHeaders.UserAgent.ParseAdd("clpctl/2.0 (Core LivePatch; Vincent OS)");
@@ -35,7 +35,7 @@ public class UpdateCommand
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine("[ERROR] Failed to fetch CLP database from both primary and fallback servers.");
                 Console.ResetColor();
-                return;
+                return 110;
             }
         }
         var serverDbContent = await response.Content.ReadAsStringAsync();
@@ -143,10 +143,12 @@ public class UpdateCommand
                         throw new FileNotFoundException($"No Install-Patch.ps1 script found in {patchDir}. Manual intervention required!");
                     }
                 }
+                return 0;
             }
             else
             {
                 Console.WriteLine("No new patches available.");
+                return 0;
             }
         }
         catch (Exception ex)
@@ -154,7 +156,7 @@ public class UpdateCommand
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine($"[ERROR] An error occurred while updating CLP: {ex.Message}");
             Console.ResetColor();
-            return;
+            return 95;
         }
     }
 }
