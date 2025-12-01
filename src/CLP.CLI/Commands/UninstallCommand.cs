@@ -7,7 +7,7 @@ namespace CLP.CLI;
 
 public class UninstallCommand
 {
-    public void UninstallPatch(string patch)
+    public int UninstallPatch(string patch)
     {
         Console.WriteLine($"Uninstalling patch {patch}...");
         try
@@ -17,7 +17,7 @@ public class UninstallCommand
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine($"[ERROR] Patch {patch} is not installed.");
                 Console.ResetColor();
-                return;
+                return 65;
             }
             // Execute the Remove-Patch.ps1 script
             var patchDir = Path.Combine("/opt/CLP", patch);
@@ -47,18 +47,20 @@ public class UninstallCommand
                     Console.Error.WriteLine($"[ERROR] Error executing script: {error}");
                     Console.Error.WriteLine($"[FATAL] Manual intervention required!");
                     Console.ResetColor();
-                    return;
+                    return 1;
                 }
                 Console.WriteLine(output);
 
                 // At last, remove the patch directory
                 Directory.Delete(patchDir, true);
+                return 0;
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine($"[ERROR] No Remove-Patch.ps1 script found in the patch directory. Manual intervention required!");
                 Console.ResetColor();
+                return 2;
             }
         }
         catch (Exception ex)
@@ -66,6 +68,7 @@ public class UninstallCommand
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine($"[ERROR] An error occurred: {ex.Message}");
             Console.ResetColor();
+            return 1;
         }
     }
 }

@@ -35,7 +35,7 @@ public class UpdateCommand
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine("[ERROR] Failed to fetch CLP database from both primary and fallback servers.");
                 Console.ResetColor();
-                return 110;
+                return 101;
             }
         }
         var serverDbContent = await response.Content.ReadAsStringAsync();

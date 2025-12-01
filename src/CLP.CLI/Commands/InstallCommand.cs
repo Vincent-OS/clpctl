@@ -8,7 +8,7 @@ namespace CLP.CLI;
 
 public class InstallCommand
 {
-    public void InstallPatch(string file)
+    public int InstallPatch(string file)
     {
         // Check if we are installing a valid patch
         if (!file.EndsWith(".clp", StringComparison.OrdinalIgnoreCase))
@@ -16,7 +16,7 @@ public class InstallCommand
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine("[ERROR] Invalid patch format. Please provide a '.clp' file.");
             Console.ResetColor();
-            return;
+            return 8;
         }
 
         // Check if the file exists
@@ -25,7 +25,7 @@ public class InstallCommand
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine($"[ERROR] The specified patch file {file} does not exist.");
             Console.ResetColor();
-            return;
+            return 2;
         }
 
         // Validate the patch file checksum
@@ -39,7 +39,7 @@ public class InstallCommand
             if (Directory.Exists($"/opt/CLP/{file}"))
             {
                 Console.WriteLine($"Patch {file} is already installed.");
-                return;
+                return 17;
             }
             Directory.CreateDirectory($"/opt/CLP/{file}");
             packager.ExtractClpFile(file, $"/opt/CLP/{file}");
@@ -80,12 +80,14 @@ public class InstallCommand
                 Console.Error.WriteLine($"[ERROR] No Install-Patch.ps1 script found in the patch directory.");
                 Console.ResetColor();
             }
+            return 0;
         }
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Error.WriteLine($"[ERROR] An error occurred: {ex.Message}");
             Console.ResetColor();
+            return 1;
         }
     }
 }
