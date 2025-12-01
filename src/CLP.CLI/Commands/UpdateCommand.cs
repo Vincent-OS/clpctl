@@ -21,7 +21,7 @@ public class UpdateCommand
     public async Task<int> UpdateDatabase()
     {
         Console.WriteLine("Updating CLP database...");
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("clpctl/2.0 (Core LivePatch; Vincent OS)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("clpctl/2.1 (Core LivePatch; Vincent OS)");
         
         // Get the latest version of the CLP database from the server and compare it to the local version
         // If the server version is newer, download and apply the patches
