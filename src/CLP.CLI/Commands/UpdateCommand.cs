@@ -105,9 +105,6 @@ public class UpdateCommand
                         var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
                         File.WriteAllBytes(patchPath, patchData);
 
-                        // Ensure the patch has not been compromised
-                        ChecksumUtility.ComputeChecksum(patchPath);
-
                         // Use InstallPatch from InstallCommand to install the patch
                         Console.WriteLine($"Downloaded patch: {patchName}");
                         var installPatch = new InstallCommand();
