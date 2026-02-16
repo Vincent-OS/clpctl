@@ -9,8 +9,8 @@ You can contribute to clpctl several ways:
 
 ### Software
 What you need to contribute to clpctl:
-1. .NET SDK 8.0
-2. (Optional) Visual Studio 2022 Community or Visual Studio code
+1. .NET SDK 10.0
+2. (Optional) Visual Studio 2026 Community or Visual Studio code
 
 To contribute:
 1. Fork this repository
