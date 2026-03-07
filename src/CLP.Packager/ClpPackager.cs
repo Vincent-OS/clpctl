@@ -1,9 +1,4 @@
-﻿using SharpCompress.Archives;
-using SharpCompress.Common;
-using SharpCompress.Compressors;
-using SharpCompress.Compressors.Deflate;
-using SharpCompress.Writers;
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Text;
 

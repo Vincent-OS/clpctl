@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace CLP.Core;
 
@@ -14,31 +15,13 @@ public class ClpFile
     public static ClpFile FromFile(string filePath, string path)
     {
         var clpFile = new ClpFile();
-        var xmlDoc = new XmlDocument();
-        xmlDoc.Load(filePath);
+        var doc = XDocument.Load(filePath);
+        var rootX = doc.Root;
+        clpFile.Name = rootX?.Element("Name")?.Value?.Trim();
+        clpFile.Version = rootX?.Element("Version")?.Value?.Trim();
+        clpFile.Architecture = rootX?.Element("Architecture")?.Value?.Trim();
+        clpFile.Description = rootX?.Element("Description")?.Value?.Trim();
 
-        var root = xmlDoc.DocumentElement;
-        if (root == null)
-            return clpFile;
-
-        foreach (XmlNode node in root.ChildNodes)
-        {
-            switch (node.Name)
-            {
-                case "Name":
-                    clpFile.Name = node.InnerText.Trim();
-                    break;
-                case "Version":
-                    clpFile.Version = node.InnerText.Trim();
-                    break;
-                case "Architecture":
-                    clpFile.Architecture = node.InnerText.Trim();
-                    break;
-                case "Description":
-                    clpFile.Description = node.InnerText.Trim();
-                    break;
-            }
-        }
         return clpFile;
     }
 }

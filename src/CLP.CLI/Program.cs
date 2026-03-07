@@ -1,55 +1,62 @@
 ﻿using System.CommandLine;
+using System.CommandLine.Parsing;
+using System.Threading;
 
 /// <summary>
-/// Create the root command and subcommands.
-/// Also create the necessary arguments for the specific subcommands.
+/// Create the root command and subcommands. Also create the necessary arguments for the specific subcommands.
 /// </summary>
 var rootCommand = new RootCommand("clpctl -  CLI Interface for Core LivePatch for Vincent OS.");
 var listCommand = new Command("list", "List all installed CLP patches.");
 var updateCommand = new Command("update", "Update the CLP database and apply new patches.");
-var installCommand = new Command("install", "Install a CLP patch.")
+var installCommand = new Command("install", "Install a CLP patch.");
+var installArgument = new Argument<string>("patch")
 {
-    new Argument<string>("patch", "The patch to install (in .clp format).")
+    Description = "The patch to install (in .clp format)."
 };
-var uninstallCommand = new Command("uninstall", "Uninstall a CLP patch.")
+installCommand.Arguments.Add(installArgument);
+var uninstallCommand = new Command("uninstall", "Uninstall a CLP patch.");
+var uninstallArgument = new Argument<string>("patch")
 {
-    new Argument<string>("patch", "The patch to uninstall.")
+    Description = "The patch to uninstall."
 };
+uninstallCommand.Arguments.Add(uninstallArgument);
 
 /// <summary>
 /// Assign the handler for commands.
 /// </summary>
-installCommand.SetHandler(async (string file) =>
+installCommand.SetAction((ParseResult parse, CancellationToken token) =>
 {
-    CLP.CLI.InstallCommand command = new CLP.CLI.InstallCommand();
+    string file = parse.GetValue(installArgument);
+    var command = new CLP.CLI.InstallCommand();
     command.InstallPatch(file);
-    await Task.CompletedTask;
-}, (System.CommandLine.Binding.IValueDescriptor<string>)installCommand.Arguments[0]);
-listCommand.SetHandler(async () =>
-{
-    CLP.CLI.ListCommand command = new CLP.CLI.ListCommand();
-    command.ListInstalledPatches();
-    await Task.CompletedTask;
+    return Task.FromResult(0);
 });
-uninstallCommand.SetHandler(async (string patch) =>
+listCommand.SetAction((ParseResult parse) =>
 {
-    CLP.CLI.UninstallCommand command = new CLP.CLI.UninstallCommand();
+    var command = new CLP.CLI.ListCommand();
+    command.ListInstalledPatches();
+});
+uninstallCommand.SetAction((ParseResult parse, CancellationToken token) =>
+{
+    string patch = parse.GetValue(uninstallArgument);
+
+    var command = new CLP.CLI.UninstallCommand();
     command.UninstallPatch(patch);
-    await Task.CompletedTask;
-}, (System.CommandLine.Binding.IValueDescriptor<string>)uninstallCommand.Arguments[0]);
-updateCommand.SetHandler(async () =>
+
+    return Task.FromResult(0);
+});
+updateCommand.SetAction(async (ParseResult parse, CancellationToken token) =>
 {
-    CLP.CLI.UpdateCommand command = new CLP.CLI.UpdateCommand();
+    var command = new CLP.CLI.UpdateCommand();
     await command.UpdateDatabase();
-    await Task.CompletedTask;
 });
 
 /// <summary>
 /// Add the commands to the root command.
 /// </summary>
-rootCommand.AddCommand(listCommand);
-rootCommand.AddCommand(installCommand);
-rootCommand.AddCommand(uninstallCommand);
-rootCommand.AddCommand(updateCommand);
+rootCommand.Subcommands.Add(listCommand);
+rootCommand.Subcommands.Add(installCommand);
+rootCommand.Subcommands.Add(uninstallCommand);
+rootCommand.Subcommands.Add(updateCommand);
 
-return await rootCommand.InvokeAsync(args);
+return await rootCommand.Parse(args).InvokeAsync();

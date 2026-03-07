@@ -29,7 +29,7 @@ public class UninstallCommand
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = "pwsh",
-                        Arguments = $"{scriptPath}",
+                        Arguments = $"-File {scriptPath}",
                         WorkingDirectory = patchDir,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
