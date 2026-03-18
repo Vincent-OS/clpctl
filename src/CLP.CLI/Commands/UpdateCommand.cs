@@ -15,6 +15,7 @@ public class UpdateCommand
     HttpResponseMessage response = null;
     string serverDbContent = null;
     private string? currentEdition = null;
+    string? activeServer = null;
 
     public async Task<int> UpdateDatabase()
     {
@@ -35,6 +36,7 @@ public class UpdateCommand
             if (response.IsSuccessStatusCode)
             {
                 serverDbContent = await response.Content.ReadAsStringAsync();
+                activeServer = server;
                 break;
             }
             else
@@ -97,7 +99,7 @@ public class UpdateCommand
 
                         var tmpDir = Directory.CreateTempSubdirectory("clp-update-").FullName;
                         var patchPath = Path.Combine(tmpDir, patchName + ".clp");
-                        var patchUrl = $"{serversList}{patchName}.clp";
+                        var patchUrl = $"{activeServer}{patchName}.clp";
 
                         HttpResponseMessage patchResponse = await client.GetAsync(patchUrl);
                         if (!patchResponse.IsSuccessStatusCode)
