@@ -4,6 +4,7 @@ using CLP.SystemIntegration;
 using System;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Xml;
 
 namespace CLP.CLI;
@@ -15,6 +16,7 @@ public class UpdateCommand
     HttpResponseMessage response = null;
     string serverDbContent = null;
     private string? currentEdition = null;
+    private string? currentArch = null;
     string? activeServer = null;
 
     public async Task<int> UpdateDatabase()
@@ -70,12 +72,24 @@ public class UpdateCommand
                         .Split('=')?
                         .ElementAtOrDefault(1)?
                         .Trim('"');
+					// We need to map the .NET architecture names to the Linux ones
+                    currentArch = RuntimeInformation.ProcessArchitecture.ToString();
+                    switch (currentArch)
+                    {
+                        case "X64":
+                            currentArch = "x86_64";
+                            break;
+                        case "Arm64":
+                            currentArch = "aarch64";
+                            break;
+                        default:
+                            currentArch = currentArch.ToLower();
+                            break;
+                    }
                 }
                 // Backup the local database before overwriting
                 var backupPath = $"/etc/CLP/CLP.db.bak";
                 File.WriteAllText(backupPath, localDbContent);
-                // Overwrite the local database with the server version
-                File.WriteAllText(localDbPath, serverDbContent);
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(File.ReadAllText(localDbPath));
                 var packageNodes = xmlDoc.SelectNodes("//Package");
@@ -88,24 +102,28 @@ public class UpdateCommand
                 {
                     foreach (XmlNode node in packageNodes)
                     {
-                        var patchName = node.SelectSingleNode("Name")?.InnerText?.Trim();
-                        var patchVersion = node.SelectSingleNode("Version")?.InnerText?.Trim();
-                        if (string.IsNullOrWhiteSpace(patchName)) continue;
-                        if (!string.Equals(patchVersion, currentEdition, StringComparison.OrdinalIgnoreCase))
+						ClpFile clpFile = new ClpFile();
+                        if (string.IsNullOrWhiteSpace(clpFile.Name)) continue;
+                        if (!string.Equals(clpFile.Version, currentEdition, StringComparison.OrdinalIgnoreCase))
                         {
-                            Console.WriteLine($"Skipping {patchName}: designed for '{patchVersion}' but current edition is '{currentEdition ?? "unknown"}'");
+                            Console.WriteLine($"Skipping {clpFile.Name}: designed for '{clpFile.Version}' but current edition is '{currentEdition ?? "unknown"}'");
+                            continue;
+                        }
+                        if (!string.Equals(clpFile.Architecture, currentArch, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Console.WriteLine($"Skipping {clpFile.Name}: designed for '{clpFile.Architecture}' but current architecture is '{currentArch ?? "unknown"}'");
                             continue;
                         }
 
                         var tmpDir = Directory.CreateTempSubdirectory("clp-update-").FullName;
-                        var patchPath = Path.Combine(tmpDir, patchName + ".clp");
-                        var patchUrl = $"{activeServer}{patchName}.clp";
+                        var patchPath = Path.Combine(tmpDir, clpFile.Name + ".clp");
+                        var patchUrl = $"{activeServer}{clpFile.Name}.clp";
 
                         HttpResponseMessage patchResponse = await client.GetAsync(patchUrl);
                         if (!patchResponse.IsSuccessStatusCode)
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"[ERROR] Failed to download patch {patchName} from servers.");
+                            Console.Error.WriteLine($"[ERROR] Failed to download patch {clpFile.Name} from servers.");
                             Console.ResetColor();
                             continue;
                         }
@@ -113,51 +131,9 @@ public class UpdateCommand
                         File.WriteAllBytes(patchPath, patchData);
 
                         // Use InstallPatch from InstallCommand to install the patch
-                        Console.WriteLine($"Downloaded patch: {patchName}");
+                        Console.WriteLine($"Downloaded patch: {clpFile.Name}");
                         var installPatch = new InstallCommand();
                         installPatch.InstallPatch(patchPath);
-                    }
-                }
-
-                // Execute the installation scripts for each patch
-                var patchesDirectory = Directory.GetDirectories("/opt/CLP");
-                if (patchesDirectory.Length == 0)
-                {
-                    Console.WriteLine("No patches were downloaded; nothing to apply.");
-                    return 0;
-                }
-
-                foreach (var patchDir in patchesDirectory)
-                {
-                    var installScriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
-                    if (File.Exists(installScriptPath))
-                    {
-                        PatchExecutor patchExecutor = new PatchExecutor();
-                        patchExecutor.ApplyPatch(installScriptPath);
-                        if (!patchExecutor.Success)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"[ERROR] Error applying patch {installScriptPath}. Reverting...");
-                            Console.ResetColor();
-                            var revertScriptPath = Path.Combine(patchDir, "Remove-Patch.ps1");
-                            if (File.Exists(revertScriptPath))
-                            {
-                                PatchExecutor revertExecutor = new PatchExecutor();
-                                revertExecutor.ApplyPatch(revertScriptPath);
-                                if (!revertExecutor.Success)
-                                {
-                                    throw new InvalidOperationException($"Failed to revert patch {revertScriptPath}. Manual intervention required!");
-                                }
-                            }
-                            else
-                            {
-                                throw new FileNotFoundException($"No Remove-Patch.ps1 script found in {patchDir}. Manual intervention required!");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new FileNotFoundException($"No Install-Patch.ps1 script found in {patchDir}. Manual intervention required!");
                     }
                 }
                 return 0;

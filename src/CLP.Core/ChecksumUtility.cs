@@ -4,6 +4,7 @@ namespace CLP.Core;
 
 public static class ChecksumUtility
 {
+    // This is shit, terrible, burn to hell!
     public static string ComputeChecksum(string filePath)
     {
         using var sha256 = SHA256.Create();

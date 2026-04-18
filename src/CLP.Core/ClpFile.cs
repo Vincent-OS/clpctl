@@ -12,7 +12,7 @@ public class ClpFile
     public string Architecture { get; set; }
     public string Description { get; set; }
 
-    public static ClpFile FromFile(string filePath, string path)
+    public static ClpFile FromFile(string filePath)
     {
         var clpFile = new ClpFile();
         var doc = XDocument.Load(filePath);
