@@ -10,7 +10,7 @@ public class InstallCommand
 {
     public int InstallPatch(string file)
     {
-        // Check if we are installing a valid patch
+        // Required checks
         if (!file.EndsWith(".clp", StringComparison.OrdinalIgnoreCase))
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -18,8 +18,6 @@ public class InstallCommand
             Console.ResetColor();
             return 8;
         }
-
-        // Check if the file exists
         if (!File.Exists(file))
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -28,24 +26,22 @@ public class InstallCommand
             return 2;
         }
 
-        // Validate the patch file checksum
         ChecksumUtility.ComputeChecksum(file);
-
-        // Extract the patch file
-        Console.WriteLine($"Installing patch {file}...");
+        var fileName = Path.GetFileName(file);
+        Console.WriteLine($"Installing patch {fileName}...");
         var packager = new ClpPackager();
         try
         {
-            if (Directory.Exists($"/opt/CLP/{file}"))
+            if (Directory.Exists($"/opt/CLP/{fileName}"))
             {
-                Console.WriteLine($"Patch {file} is already installed.");
+                Console.WriteLine($"Patch {fileName} is already installed.");
                 return 17;
             }
-            Directory.CreateDirectory($"/opt/CLP/{file}");
-            packager.ExtractClpFile(file, $"/opt/CLP/{file}");
+            Directory.CreateDirectory($"/opt/CLP/{fileName}");
+            packager.ExtractClpFile(file, $"/opt/CLP/{fileName}");
 
             // Get on the new directory and execute the Install-Patch.ps1 script
-            var patchDir = Path.Combine("/opt/CLP", file);
+            var patchDir = Path.Combine("/opt/CLP", fileName);
             var scriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
             if (File.Exists(scriptPath))
             {

@@ -98,12 +98,18 @@ public class UpdateCommand
                     Console.WriteLine("No patches listed in Core LivePatch database.");
                     return 0;
                 }
-                else
-                {
-                    foreach (XmlNode node in packageNodes)
-                    {
-						ClpFile clpFile = new ClpFile();
-                        if (string.IsNullOrWhiteSpace(clpFile.Name)) continue;
+				else
+				{
+					foreach (XmlNode node in packageNodes)
+					{
+						ClpFile clpFile = new ClpFile
+						{
+							Name = node.SelectSingleNode("Name")?.InnerText?.Trim(),
+							Version = node.SelectSingleNode("Version")?.InnerText?.Trim(),
+							Architecture = node.SelectSingleNode("Architecture")?.InnerText?.Trim(),
+							Description = node.SelectSingleNode("Description")?.InnerText?.Trim()
+						};
+						if (string.IsNullOrWhiteSpace(clpFile.Name)) continue;
                         if (!string.Equals(clpFile.Version, currentEdition, StringComparison.OrdinalIgnoreCase))
                         {
                             Console.WriteLine($"Skipping {clpFile.Name}: designed for '{clpFile.Version}' but current edition is '{currentEdition ?? "unknown"}'");
