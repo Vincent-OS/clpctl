@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CLP.CLI/CLP.CLI.csproj" />
+  <Project Path="CLP.Core/CLP.Core.csproj" />
+  <Project Path="CLP.Packager/CLP.Packager.csproj" />
+  <Project Path="CLP.SystemIntegration/CLP.SystemIntegration.csproj" />
+</Solution>

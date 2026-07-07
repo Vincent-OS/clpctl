@@ -4,6 +4,7 @@ using CLP.SystemIntegration;
 using System;
 using System.CommandLine;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Xml;
 
 namespace CLP.CLI;
@@ -11,34 +12,43 @@ namespace CLP.CLI;
 public class UpdateCommand
 {
     private static readonly HttpClient client = new HttpClient();
+    private List<string> serversList = MirrorsReader.Read();
+    HttpResponseMessage response = null;
+    string serverDbContent = null;
+    private string? currentEdition = null;
+    private string? currentArch = null;
+    string? activeServer = null;
 
-    private List<string> serversList = new List<string>
+    public async Task<int> UpdateDatabase()
     {
-        "https://repo.v38armageddon.net/vincent-os/CLP/",
-        "https://repo-fallback.v38armageddon.net/vincent-os/CLP/"
-    };
-
-    public async Task UpdateDatabase()
-    {
-        Console.WriteLine("Updating CLP database...");
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("clpctl/2.0 (Core LivePatch; Vincent OS)");
-        
+        Console.WriteLine("Updating Core LivePatch database...");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("clpctl/2.1 (Core LivePatch; Vincent OS)");
+        if (serversList == null || serversList.Count == 0)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Error.WriteLine("[ERROR] No Core LivePatch servers configured. Please check your configuration.");
+            Console.ResetColor();
+            return 2;
+        }
         // Get the latest version of the CLP database from the server and compare it to the local version
         // If the server version is newer, download and apply the patches
-        var response = await client.GetAsync($"{serversList[0]}CLP.db");
-        if (!response.IsSuccessStatusCode)
+        foreach (var server in serversList)
         {
-            // Fallback to secondary server
-            response = await client.GetAsync($"{serversList[1]}CLP.db");
-            if (!response.IsSuccessStatusCode)
+            response = await client.GetAsync($"{server}CLP.db");
+            if (response.IsSuccessStatusCode)
+            {
+                serverDbContent = await response.Content.ReadAsStringAsync();
+                activeServer = server;
+                break;
+            }
+            else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.Error.WriteLine("[ERROR] Failed to fetch CLP database from both primary and fallback servers.");
+                Console.Error.WriteLine($"[ERROR] Failed to fetch Core LivePatch database from {string.Join(", ", serversList)}.");
                 Console.ResetColor();
-                return;
+                return 101;
             }
         }
-        var serverDbContent = await response.Content.ReadAsStringAsync();
 
         // Read the local CLP database
         var localDbPath = "/etc/CLP/CLP.db";
@@ -48,113 +58,104 @@ public class UpdateCommand
             // Verification part
             if (!File.Exists(localDbPath))
             {
-                Console.WriteLine("Local CLP database not found. Getting from server...");
+                Console.WriteLine("Local Core LivePatch database not found. Getting from server...");
                 Directory.CreateDirectory(Path.GetDirectoryName(localDbPath));
                 File.WriteAllText(localDbPath, serverDbContent);
             }
             if (serverDbContent != localDbContent)
             {
                 Console.WriteLine("New patches available. Downloading and applying...");
+                if (File.Exists("/etc/os-release"))
+                {
+                    currentEdition = File.ReadAllLines("/etc/os-release")
+                        .FirstOrDefault(line => line.StartsWith("VARIANT_ID="))?
+                        .Split('=')?
+                        .ElementAtOrDefault(1)?
+                        .Trim('"');
+					// We need to map the .NET architecture names to the Linux ones
+                    currentArch = RuntimeInformation.ProcessArchitecture.ToString();
+                    switch (currentArch)
+                    {
+                        case "X64":
+                            currentArch = "x86_64";
+                            break;
+                        case "Arm64":
+                            currentArch = "aarch64";
+                            break;
+                        default:
+                            currentArch = currentArch.ToLower();
+                            break;
+                    }
+                }
                 // Backup the local database before overwriting
                 var backupPath = $"/etc/CLP/CLP.db.bak";
                 File.WriteAllText(backupPath, localDbContent);
-                // Overwrite the local database with the server version
-                File.WriteAllText(localDbPath, serverDbContent);
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(File.ReadAllText(localDbPath));
-                var root = xmlDoc.DocumentElement;
-                foreach (XmlNode node in root.SelectNodes("Package"))
+                var packageNodes = xmlDoc.SelectNodes("//Package"); // will search in all structure independent of XML file
+                if (packageNodes == null || packageNodes.Count == 0)
                 {
-                    var patchName = node.SelectSingleNode("Name")?.InnerText?.Trim();
-                    var patchUrl = $"{serversList[0]}{patchName}.CLP";
-                    var patchResponse = await client.GetAsync(patchUrl);
-                    var patchPath = $"/tmp/CLP/{patchName}.CLP";
-                    if (!Directory.Exists("/tmp/CLP"))
-                    {
-                        Directory.CreateDirectory("/tmp/CLP");
-                    }
-                    if (patchResponse.IsSuccessStatusCode)
-                    {
-                        var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
-                        File.WriteAllBytes(patchPath, patchData);
-
-                        // Ensure the patch has not been compromised
-                        ChecksumUtility.ComputeChecksum(patchPath);
-
-                        // Prepare the folder to /opt/CLP for extraction
-                        // Should be handled by ClpPackager, .NET sometimes can be weird
-                        if (!Directory.Exists($"/opt/CLP/{patchName}"))
+                    Console.WriteLine("No patches listed in Core LivePatch database.");
+                    return 0;
+                }
+				else
+				{
+					foreach (XmlNode node in packageNodes)
+					{
+						ClpFile clpFile = new ClpFile
+						{
+							Name = node.SelectSingleNode("Name")?.InnerText?.Trim(),
+							Version = node.SelectSingleNode("Version")?.InnerText?.Trim(),
+							Architecture = node.SelectSingleNode("Architecture")?.InnerText?.Trim(),
+							Description = node.SelectSingleNode("Description")?.InnerText?.Trim()
+						};
+						if (string.IsNullOrWhiteSpace(clpFile.Name)) continue;
+                        if (!string.Equals(clpFile.Version, currentEdition, StringComparison.OrdinalIgnoreCase))
                         {
-                            Directory.CreateDirectory($"/opt/CLP/{patchName}");
+                            Console.WriteLine($"Skipping {clpFile.Name}: designed for '{clpFile.Version}' but current edition is '{currentEdition ?? "unknown"}'");
+                            continue;
+                        }
+                        if (!string.Equals(clpFile.Architecture, currentArch, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Console.WriteLine($"Skipping {clpFile.Name}: designed for '{clpFile.Architecture}' but current architecture is '{currentArch ?? "unknown"}'");
+                            continue;
                         }
 
-                        // Call the packager to apply the patches
-                        var packager = new ClpPackager();
-                        packager.ExtractClpFile(patchPath, $"/opt/CLP/{patchName}");
-                        Console.WriteLine($"Downloaded patch: {patchName}");
-                    }
-                    else
-                    {
-                        patchUrl = $"{serversList[1]}{patchName}.CLP";
-                        patchResponse = await client.GetAsync(patchUrl);
+                        var tmpDir = Directory.CreateTempSubdirectory("clp-update-").FullName;
+                        var patchPath = Path.Combine(tmpDir, clpFile.Name + ".clp");
+                        var patchUrl = $"{activeServer}{clpFile.Name}.clp";
+
+                        HttpResponseMessage patchResponse = await client.GetAsync(patchUrl);
                         if (!patchResponse.IsSuccessStatusCode)
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"[ERROR] Failed to download patch {patchName} from both primary and fallback servers.");
+                            Console.Error.WriteLine($"[ERROR] Failed to download patch {clpFile.Name} from servers.");
                             Console.ResetColor();
                             continue;
                         }
-                    }
-                    continue;
-                }
+                        var patchData = await patchResponse.Content.ReadAsByteArrayAsync();
+                        File.WriteAllBytes(patchPath, patchData);
 
-                // Execute the installation scripts for each patch
-                var patchesDirectory = Directory.GetDirectories("/opt/CLP");
-                foreach (var patchDir in patchesDirectory)
-                {
-                    var installScriptPath = Path.Combine(patchDir, "Install-Patch.ps1");
-                    if (File.Exists(installScriptPath))
-                    {
-                        PatchExecutor patchExecutor = new PatchExecutor();
-                        patchExecutor.ApplyPatch(installScriptPath);
-                        if (!patchExecutor.Success)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.Error.WriteLine($"[ERROR] Error applying patch {installScriptPath}. Reverting...");
-                            Console.ResetColor();
-                            var revertScriptPath = Path.Combine(patchDir, "Remove-Patch.ps1");
-                            if (File.Exists(revertScriptPath))
-                            {
-                                PatchExecutor revertExecutor = new PatchExecutor();
-                                revertExecutor.ApplyPatch(revertScriptPath);
-                                if (!revertExecutor.Success)
-                                {
-                                    throw new InvalidOperationException($"Failed to revert patch {revertScriptPath}. Manual intervention required!");
-                                }
-                            }
-                            else
-                            {
-                                throw new FileNotFoundException($"No Remove-Patch.ps1 script found in {patchDir}. Manual intervention required!");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new FileNotFoundException($"No Install-Patch.ps1 script found in {patchDir}. Manual intervention required!");
+                        // Use InstallPatch from InstallCommand to install the patch
+                        Console.WriteLine($"Downloaded patch: {clpFile.Name}");
+                        var installPatch = new InstallCommand();
+                        installPatch.InstallPatch(patchPath);
                     }
                 }
+                return 0;
             }
             else
             {
                 Console.WriteLine("No new patches available.");
+                return 0;
             }
         }
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.Error.WriteLine($"[ERROR] An error occurred while updating CLP: {ex.Message}");
+            Console.Error.WriteLine($"[ERROR] An error occurred while updating Core LivePatch: {ex.Message}");
             Console.ResetColor();
-            return;
+            return 95;
         }
     }
 }

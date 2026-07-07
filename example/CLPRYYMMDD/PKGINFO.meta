@@ -1,6 +1,6 @@
 <Package>
     <Name>CLPRYYMMDD</Name>
-    <Version>1</Version>
+    <Version>standard</Version>
     <Architecture>x86_64</Architecture>
     <Description>Example CLP Patch</Description>
 </Package>
