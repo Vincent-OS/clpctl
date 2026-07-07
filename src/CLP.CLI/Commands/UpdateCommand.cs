@@ -92,7 +92,7 @@ public class UpdateCommand
                 File.WriteAllText(backupPath, localDbContent);
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(File.ReadAllText(localDbPath));
-                var packageNodes = xmlDoc.SelectNodes("//Package");
+                var packageNodes = xmlDoc.SelectNodes("//Package"); // will search in all structure independent of XML file
                 if (packageNodes == null || packageNodes.Count == 0)
                 {
                     Console.WriteLine("No patches listed in Core LivePatch database.");
